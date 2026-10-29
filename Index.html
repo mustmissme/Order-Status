@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>mustmissme | Order Status</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- LINE LIFF SDK (ใช้เมื่อใส่ LIFF_ID ด้านล่าง) -->
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    :root {
+      --pink: #ff66c4;
+      --cream: #fff3c2;
+      --green: #00bf63;
+      --pink-soft: #ffb4e2;
+      --purple: #8c52ff;
+      --purple-soft: #c2a4ff;
+      --orange-light: #ffbd59;
+      --orange: #ff914d;
+      --red: #ff3131;
+      --ink: #111;
+      --muted: #8a8a8a;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: "Prompt", "Noto Sans Thai", sans-serif;
+      background: #d9d9d9;
+      color: var(--ink);
+      min-height: 100vh;
+      min-height: 100dvh;
+    }
+
+    .app {
+      max-width: 480px;
+      min-height: 100vh;
+      min-height: 100dvh;
+      margin: 0 auto;
+      background: var(--pink);
+      display: flex;
+      flex-direction: column;
+      padding-top: env(safe-area-inset-top, 0px);
+    }
+
+    /* ---------- Header ---------- */
+    .hero {
+      color: #fff;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 28px 20px 52px;
+      transition: min-height .35s ease, padding .35s ease;
+      min-height: 65vh;
+    }
+    .app.has-result .hero { min-height: 0; padding: 22px 20px 48px; }
+    .hero h1 {
+      margin: 0;
+      font-size: 40px;
+      font-weight: 700;
+      letter-spacing: .5px;
+      line-height: 1.1;
+    }
+    .app.has-result .hero h1 { font-size: 34px; }
+    .hero p { margin: 4px 0 0; font-size: 18px; font-weight: 500; }
+
+    /* ---------- Cream panel ---------- */
+    .panel {
+      flex: 1;
+      background: var(--cream);
+      border-radius: 34px 34px 0 0;
+      margin-top: -34px;
+      padding: 34px 22px calc(40px + env(safe-area-inset-bottom, 0px));
+    }
+
+    .search { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+    .search input {
+      width: 100%;
+      max-width: 340px;
+      height: 52px;
+      border: none;
+      border-radius: 999px;
+      padding: 0 22px;
+      font: inherit;
+      font-size: 16px;
+      background: #fff;
+      outline: none;
+    }
+    .search input::placeholder { color: var(--muted); }
+    .search input:focus-visible { box-shadow: 0 0 0 3px var(--pink); }
+    .btn-row { display: flex; gap: 8px; }
+    .btn {
+      min-width: 118px;
+      height: 40px;
+      border: none;
+      border-radius: 999px;
+      font: inherit;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn:focus-visible { outline: 3px solid var(--purple); outline-offset: 2px; }
+    .btn-search { background: var(--pink); color: #fff; }
+    .btn-clear { background: #fff; color: var(--pink); }
+
+    .loading { text-align: center; margin-top: 22px; color: #555; }
+
+    /* ---------- Results ---------- */
+    .phone-label { font-size: 20px; font-weight: 500; margin: 0 0 14px; }
+    .my-orders { color: var(--pink); font-size: 20px; font-weight: 600; margin: 0 0 8px; }
+
+    .order { margin-bottom: 34px; }
+    .order + .order { padding-top: 6px; border-top: 2px dashed rgba(255,102,196,.45); }
+
+    .ship-round {
+      background: #fff;
+      border-radius: 14px;
+      padding: 12px 16px;
+      font-size: 14px;
+      font-weight: 500;
+      color: #555;
+      margin-bottom: 18px;
+    }
+    .section-title { color: var(--pink); font-size: 20px; font-weight: 600; margin: 0 0 10px; }
+
+    .card {
+      background: #fff;
+      border-radius: 18px;
+      padding: 14px 18px;
+      margin-bottom: 20px;
+    }
+    .card .label { color: var(--muted); font-size: 14px; margin-bottom: 4px; }
+    .card ul { margin: 0; padding-left: 20px; font-size: 14px; color: #555; line-height: 1.7; }
+
+    /* payment */
+    .pay-full {
+      background: var(--green);
+      color: #fff;
+      border-radius: 999px;
+      padding: 10px 20px;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 14px;
+    }
+    .pay-deposit { border-radius: 18px; overflow: hidden; margin-bottom: 14px; color: #fff; font-size: 14px; font-weight: 500; }
+    .pay-deposit > div { display: flex; justify-content: space-between; gap: 12px; padding: 13px 20px; }
+    .pay-deposit .dep { background: var(--orange-light); }
+    .pay-deposit .rem { background: var(--orange); font-weight: 600; }
+
+    /* status / tracking */
+    .tile { display: flex; align-items: stretch; gap: 8px; margin-bottom: 14px; }
+    .tab {
+      flex: 0 0 38px;
+      border-radius: 999px;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .tab span { writing-mode: vertical-rl; transform: rotate(180deg); }
+    .tile-body { flex: 1; border-radius: 22px; padding: 16px 20px; min-width: 0; }
+    .tile-body strong { display: block; font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+    .tile-body span { display: block; font-size: 13px; overflow-wrap: anywhere; }
+    .tile.status .tab { background: var(--pink); }
+    .tile.status .tile-body { background: var(--pink-soft); }
+    .tile.status strong { color: var(--pink); }
+    .tile.status .tile-body span { color: #fff; font-size: 14px; }
+    .tile.status.done .tile-body span { font-weight: 600; }
+    .tile.track .tab { background: var(--purple); }
+    .tile.track .tile-body { background: var(--purple-soft); color: #fff; }
+    .tile.track strong { color: var(--purple); }
+
+    .note { font-size: 12px; line-height: 1.7; padding: 0 6px; margin: 4px 0 0; }
+
+    /* error */
+    .error-box {
+      background: #fff;
+      border: 3px solid var(--red);
+      border-radius: 22px;
+      padding: 14px 18px;
+      margin-top: 24px;
+      font-size: 13px;
+      line-height: 1.7;
+    }
+    .error-box h3 { margin: 0 0 4px; color: var(--red); font-size: 14px; font-weight: 600; }
+    .error-box ol { margin: 0; padding-left: 20px; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .hero { transition: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app" id="app">
+    <header class="hero">
+      <h1>mustmissme</h1>
+      <p>Order Status</p>
+    </header>
+
+    <section class="panel">
+      <div id="phoneLabel"></div>
+
+      <div class="search">
+        <input type="tel" id="phone" inputmode="numeric" autocomplete="tel"
+               placeholder="Phone" maxlength="10" aria-label="เบอร์โทรศัพท์">
+        <div class="btn-row">
+          <button class="btn btn-search" id="btnSearch" type="button">Search</button>
+          <button class="btn btn-clear" id="btnClear" type="button">Clear</button>
+        </div>
+      </div>
+
+      <div id="loading" class="loading" hidden>กำลังค้นหา...</div>
+      <div id="results" aria-live="polite"></div>
+    </section>
+  </main>
+
+  <script>
+    // ====== ตั้งค่า ======
+    // URL ของ Google Apps Script Web App (ตัวที่ Deploy แล้ว)
+    const API_URL = "https://script.google.com/macros/s/AKfycbycT2il23K_cbJB-vM0T19jN-_CaceP17p2f7NVr8B_dNnwdVThuo_i6SRzdWIs6Cnb/exec";
+    // ใส่ LIFF ID จาก LINE Developers ถ้าจะเปิดผ่านไลน์ (เว้นว่างไว้ = ไม่ใช้ LIFF)
+    const LIFF_ID = "";
+
+    // ลำดับข้อมูลที่ได้จาก Apps Script (หลังตัด จำนวน และ การจัดส่ง ออกแล้ว)
+    const COL = {
+      ROUND: 0,      // รอบพรี
+      PRODUCT: 1,    // สินค้า
+      PAYMENT: 2,    // การชำระเงิน
+      DEPOSIT: 3,    // มัดจำ (เดิม: จำนวนเงินที่โอน)
+      BALANCE: 4,    // ยอดคงเหลือ
+      STATUS: 5,     // สถานะ
+      SHIP_DATE: 6,  // วันที่จัดส่ง
+      CARRIER: 7,    // ขนส่ง
+      TRACKING: 8    // Tracking No.
+    };
+
+    const $ = id => document.getElementById(id);
+    const app = $("app");
+
+    function esc(v) {
+      return String(v ?? "").replace(/[&<>"']/g, c =>
+        ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    }
+    function dateOnly(v) {
+      return String(v ?? "").trim().split(/[ T]/)[0];
+    }
+    function num(v) {
+      const n = parseFloat(String(v ?? "").replace(/[^\d.-]/g, ""));
+      return isNaN(n) ? 0 : n;
+    }
+    function baht(v) {
+      const s = String(v ?? "").trim();
+      if (!s) return "-";
+      const n = num(s);
+      return (n ? n.toLocaleString("th-TH") : s) + " บาท";
+    }
+    function maskPhone(p) {
+      return p.slice(0, 3) + "x".repeat(6) + p.slice(9);
+    }
+
+    function renderOrder(row) {
+      const products = String(row[COL.PRODUCT] ?? "")
+        .split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+      const productHtml = products.length
+        ? products.map(p => `<li>${esc(p)}</li>`).join("")
+        : "<li>-</li>";
+
+      const balance = num(row[COL.BALANCE]);
+      const isDeposit = /มัดจำ/.test(String(row[COL.PAYMENT] ?? "")) || balance > 0;
+
+      const payHtml = isDeposit
+        ? `<div class="pay-deposit">
+             <div class="dep"><span>มัดจำ</span><span>${baht(row[COL.DEPOSIT])}</span></div>
+             <div class="rem"><span>คงเหลือ</span><span>${baht(row[COL.BALANCE])}</span></div>
+           </div>`
+        : `<div class="pay-full">
+             <span>ชำระเต็มจำนวน</span><span>${baht(row[COL.DEPOSIT])}</span>
+           </div>`;
+
+      const status = String(row[COL.STATUS] ?? "").trim() || "-";
+      const shipDate = dateOnly(row[COL.SHIP_DATE]);
+      const carrier = String(row[COL.CARRIER] ?? "").trim();
+      const tracking = String(row[COL.TRACKING] ?? "").trim();
+      const hasTracking = carrier || tracking;
+
+      const trackHtml = hasTracking
+        ? `<div class="tile track">
+             <div class="tab"><span>Tracking</span></div>
+             <div class="tile-body">
+               <strong>${esc(carrier || "ขนส่ง")}</strong>
+               <span>Shipping Date: ${esc(shipDate || "-")}</span>
+               <span>Tracking No: ${esc(tracking || "-")}</span>
+             </div>
+           </div>
+           <p class="note">หากเลขพัสดุยังไม่ขึ้นในระบบขนส่ง รบกวนรอเช็คอีกครั้ง<br>ในวันถัดไป เวลา 17:00 น. เนื่องจากระบบอาจจะอัปเดตช้าค่ะ</p>`
+        : "";
+
+      return `
+        <article class="order">
+          <div class="ship-round">รอบส่งวันที่ ${esc(shipDate || "ยังไม่กำหนด")}</div>
+
+          <h2 class="section-title">รอบพรี ${esc(dateOnly(row[COL.ROUND]))}</h2>
+          <div class="card">
+            <div class="label">สินค้า</div>
+            <ul>${productHtml}</ul>
+          </div>
+
+          <h2 class="section-title">การชำระเงิน</h2>
+          ${payHtml}
+
+          <div class="tile status${status === "จัดส่งแล้ว" ? " done" : ""}">
+            <div class="tab"><span>Status</span></div>
+            <div class="tile-body">
+              <strong>สถานะ</strong>
+              <span>${esc(status)}</span>
+            </div>
+          </div>
+
+          ${trackHtml}
+        </article>`;
+    }
+
+    function showNotFound() {
+      $("results").innerHTML = `
+        <div class="error-box">
+          <h3>ไม่พบข้อมูล</h3>
+          <ol>
+            <li>กรุณาเช็คเบอร์โทรอีกครั้ง</li>
+            <li>สถานะยังไม่อัปเดต รอเช็คหลังจากลูกค้าแจ้งโอนภายใน 24 ชม.</li>
+            <li>ติดต่อร้านทางไลน์</li>
+          </ol>
+        </div>`;
+    }
+
+    function showMessage(text) {
+      $("results").innerHTML = `<div class="error-box"><h3>${esc(text)}</h3></div>`;
+    }
+
+    async function searchOrder() {
+      const phone = $("phone").value.trim();
+      const results = $("results");
+      const loading = $("loading");
+      results.innerHTML = "";
+      $("phoneLabel").innerHTML = "";
+
+      app.classList.add("has-result");
+
+      if (!/^\d{10}$/.test(phone)) {
+        showMessage("กรุณากรอกเบอร์โทร 10 หลักให้ถูกต้อง");
+        return;
+      }
+
+      loading.hidden = false;
+      $("phoneLabel").innerHTML = `<p class="phone-label">${esc(maskPhone(phone))}</p>`;
+
+      try {
+        const res = await fetch(`${API_URL}?action=search&phone=${encodeURIComponent(phone)}`);
+        const data = await res.json();
+        loading.hidden = true;
+
+        if (data.status !== "success" || !data.orders || data.orders.length === 0) {
+          showNotFound();
+          return;
+        }
+        results.innerHTML =
+          `<h2 class="my-orders">My Orders</h2>` + data.orders.map(renderOrder).join("");
+      } catch (err) {
+        loading.hidden = true;
+        showMessage("เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง");
+      }
+    }
+
+    function clearResults() {
+      $("phone").value = "";
+      $("results").innerHTML = "";
+      $("phoneLabel").innerHTML = "";
+      $("loading").hidden = true;
+      app.classList.remove("has-result");
+    }
+
+    $("btnSearch").addEventListener("click", searchOrder);
+    $("btnClear").addEventListener("click", clearResults);
+    $("phone").addEventListener("keydown", e => { if (e.key === "Enter") searchOrder(); });
+    $("phone").addEventListener("input", e => {
+      e.target.value = e.target.value.replace(/\D/g, "").slice(0, 10);
+    });
+
+    // ====== LINE LIFF (ทางเลือก) ======
+    if (LIFF_ID && window.liff) {
+      liff.init({ liffId: LIFF_ID }).catch(err => console.error("LIFF init error", err));
+    }
+  </script>
+</body>
+</html>
