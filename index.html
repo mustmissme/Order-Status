@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="th">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -27,21 +27,21 @@
     html, body { margin: 0; padding: 0; }
     body {
       font-family: "Prompt", "Noto Sans Thai", sans-serif;
-      background: #d9d9d9;
+      background: #fff;
       color: var(--ink);
       min-height: 100vh;
       min-height: 100dvh;
     }
 
     .app {
-      max-width: 480px;
-      min-height: 100vh;
-      min-height: 100dvh;
-      margin: 0 auto;
+      width: calc(100% - 32px);
+      max-width: 400px;
+      margin: calc(28px + env(safe-area-inset-top, 0px)) auto calc(28px + env(safe-area-inset-bottom, 0px));
       background: var(--pink);
+      border-radius: 34px;
+      overflow: hidden;
       display: flex;
       flex-direction: column;
-      padding-top: env(safe-area-inset-top, 0px);
     }
 
     /* ---------- Header ---------- */
@@ -72,7 +72,7 @@
       background: var(--cream);
       border-radius: 34px 34px 0 0;
       margin-top: -34px;
-      padding: 34px 22px calc(40px + env(safe-area-inset-bottom, 0px));
+      padding: 34px 22px 36px;
     }
 
     .search { display: flex; flex-direction: column; align-items: center; gap: 14px; }
@@ -209,23 +209,23 @@
 
       <div class="search">
         <input type="tel" id="phone" inputmode="numeric" autocomplete="tel"
-               placeholder="Phone" maxlength="10" aria-label="เบอร์โทรศัพท์">
+               placeholder="Phone" maxlength="10" aria-label="Phone number">
         <div class="btn-row">
           <button class="btn btn-search" id="btnSearch" type="button">Search</button>
           <button class="btn btn-clear" id="btnClear" type="button">Clear</button>
         </div>
       </div>
 
-      <div id="loading" class="loading" hidden>กำลังค้นหา...</div>
+      <div id="loading" class="loading" hidden>Searching...</div>
       <div id="results" aria-live="polite"></div>
     </section>
   </main>
 
   <script>
     // ====== ตั้งค่า ======
-    // URL ของ Google Apps Script Web App (ตัวที่ Deploy แล้ว)
+    // Google Apps Script Web App URL (deployed)
     const API_URL = "https://script.google.com/macros/s/AKfycbycT2il23K_cbJB-vM0T19jN-_CaceP17p2f7NVr8B_dNnwdVThuo_i6SRzdWIs6Cnb/exec";
-    // ใส่ LIFF ID จาก LINE Developers ถ้าจะเปิดผ่านไลน์ (เว้นว่างไว้ = ไม่ใช้ LIFF)
+    // LIFF ID from LINE Developers (leave empty to disable LIFF)
     const LIFF_ID = "2012289812-H6KUWQRM";
 
     // ลำดับข้อมูลที่ได้จาก Apps Script (หลังตัด จำนวน และ การจัดส่ง ออกแล้ว)
@@ -259,7 +259,7 @@
       const s = String(v ?? "").trim();
       if (!s) return "-";
       const n = num(s);
-      return (n ? n.toLocaleString("th-TH") : s) + " บาท";
+      return (n ? n.toLocaleString("en-US") : s) + " THB";
     }
     function maskPhone(p) {
       return p.slice(0, 3) + "x".repeat(6) + p.slice(9);
@@ -273,15 +273,15 @@
         : "<li>-</li>";
 
       const balance = num(row[COL.BALANCE]);
-      const isDeposit = /มัดจำ/.test(String(row[COL.PAYMENT] ?? "")) || balance > 0;
+      const isDeposit = /มัดจำ|deposit/i.test(String(row[COL.PAYMENT] ?? "")) || balance > 0;
 
       const payHtml = isDeposit
         ? `<div class="pay-deposit">
-             <div class="dep"><span>มัดจำ</span><span>${baht(row[COL.DEPOSIT])}</span></div>
-             <div class="rem"><span>คงเหลือ</span><span>${baht(row[COL.BALANCE])}</span></div>
+             <div class="dep"><span>Deposit</span><span>${baht(row[COL.DEPOSIT])}</span></div>
+             <div class="rem"><span>Balance</span><span>${baht(row[COL.BALANCE])}</span></div>
            </div>`
         : `<div class="pay-full">
-             <span>ชำระเต็มจำนวน</span><span>${baht(row[COL.DEPOSIT])}</span>
+             <span>Paid in full</span><span>${baht(row[COL.DEPOSIT])}</span>
            </div>`;
 
       const status = String(row[COL.STATUS] ?? "").trim() || "-";
@@ -294,31 +294,31 @@
         ? `<div class="tile track">
              <div class="tab"><span>Tracking</span></div>
              <div class="tile-body">
-               <strong>${esc(carrier || "ขนส่ง")}</strong>
+               <strong>${esc(carrier || "Carrier")}</strong>
                <span>Shipping Date: ${esc(shipDate || "-")}</span>
                <span>Tracking No: ${esc(tracking || "-")}</span>
              </div>
            </div>
-           <p class="note">หากเลขพัสดุยังไม่ขึ้นในระบบขนส่ง รบกวนรอเช็คอีกครั้ง<br>ในวันถัดไป เวลา 17:00 น. เนื่องจากระบบอาจจะอัปเดตช้าค่ะ</p>`
+           <p class="note">If the tracking number is not showing in the carrier's system yet,<br>please check again tomorrow after 5:00 PM, as updates may be delayed.</p>`
         : "";
 
       return `
         <article class="order">
-          <div class="ship-round">รอบส่งวันที่ ${esc(shipDate || "ยังไม่กำหนด")}</div>
+          <div class="ship-round">Shipping round: ${esc(shipDate || "Not scheduled")}</div>
 
-          <h2 class="section-title">รอบพรี ${esc(dateOnly(row[COL.ROUND]))}</h2>
+          <h2 class="section-title">Pre-order round ${esc(dateOnly(row[COL.ROUND]))}</h2>
           <div class="card">
-            <div class="label">สินค้า</div>
+            <div class="label">Items</div>
             <ul>${productHtml}</ul>
           </div>
 
-          <h2 class="section-title">การชำระเงิน</h2>
+          <h2 class="section-title">Payment</h2>
           ${payHtml}
 
           <div class="tile status${status === "จัดส่งแล้ว" ? " done" : ""}">
             <div class="tab"><span>Status</span></div>
             <div class="tile-body">
-              <strong>สถานะ</strong>
+              <strong>Status</strong>
               <span>${esc(status)}</span>
             </div>
           </div>
@@ -330,11 +330,11 @@
     function showNotFound() {
       $("results").innerHTML = `
         <div class="error-box">
-          <h3>ไม่พบข้อมูล</h3>
+          <h3>No orders found</h3>
           <ol>
-            <li>กรุณาเช็คเบอร์โทรอีกครั้ง</li>
-            <li>สถานะยังไม่อัปเดต รอเช็คหลังจากลูกค้าแจ้งโอนภายใน 24 ชม.</li>
-            <li>ติดต่อร้านทางไลน์</li>
+            <li>Please double-check your phone number.</li>
+            <li>Your status may not be updated yet. Please check again within 24 hours after you notify us of your transfer.</li>
+            <li>Contact the shop via LINE.</li>
           </ol>
         </div>`;
     }
@@ -353,7 +353,7 @@
       app.classList.add("has-result");
 
       if (!/^\d{10}$/.test(phone)) {
-        showMessage("กรุณากรอกเบอร์โทร 10 หลักให้ถูกต้อง");
+        showMessage("Please enter a valid 10-digit phone number.");
         return;
       }
 
@@ -373,7 +373,7 @@
           `<h2 class="my-orders">My Orders</h2>` + data.orders.map(renderOrder).join("");
       } catch (err) {
         loading.hidden = true;
-        showMessage("เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง");
+        showMessage("Connection error. Please try again.");
       }
     }
 
